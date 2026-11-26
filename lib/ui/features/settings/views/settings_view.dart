@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../domain/models/app_preferences.dart';
 import '../../app/app_view_model.dart';
@@ -205,18 +206,20 @@ class SettingsView extends StatelessWidget {
               _SettingsSection(
                 title: 'Preferences',
                 children: [
-                  ListTile(
-                    leading: const Icon(Icons.alt_route_rounded),
-                    title: const Text('App routing'),
-                    subtitle: Text(
-                      prefs.proxyAllApps
-                          ? 'Proxy all apps'
-                          : '${prefs.proxiedAppIds.length} apps selected',
+                  if (defaultTargetPlatform != TargetPlatform.iOS) ...[
+                    ListTile(
+                      leading: const Icon(Icons.alt_route_rounded),
+                      title: const Text('App routing'),
+                      subtitle: Text(
+                        prefs.proxyAllApps
+                            ? 'Proxy all apps'
+                            : '${prefs.proxiedAppIds.length} apps selected',
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: onOpenAppRouting,
                     ),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: onOpenAppRouting,
-                  ),
-                  const Divider(height: 1, indent: 56),
+                    const Divider(height: 1, indent: 56),
+                  ],
                   SwitchListTile(
                     secondary: const Icon(Icons.speed_rounded),
                     title: const Text('Show server latency'),

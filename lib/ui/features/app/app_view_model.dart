@@ -36,7 +36,10 @@ class AppViewModel extends ChangeNotifier {
 
   static const String appName = 'HappyVPN+ (Хэппи ВПН)';
   static const String shortAppName = 'HappyVPN+';
-  static const String appVersion = '1.0.11';
+  static const String appVersion = '2.0.0';
+  static const String supportEmail = 'support@happyvpn.app';
+  static const MethodChannel _supportChannel =
+      MethodChannel('happy.vpn/support');
 
   final PreferencesRepository preferencesRepository;
   final ServerRepository serverRepository;
@@ -251,15 +254,50 @@ class AppViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> submitFeedback({
+  /// Opens the user's email client prefilled with the feedback message and
+  /// optional diagnostics. Returns `true` if the mail app opened, or `false`
+  /// if no mail client was available (in which case the report is copied to
+  /// the clipboard as a fallback).
+  Future<bool> submitFeedback({
     required String message,
     required bool includeDiagnostics,
   }) async {
-    await Future<void>.delayed(const Duration(milliseconds: 350));
+    final buffer = StringBuffer(message.trim());
+    if (includeDiagnostics) {
+      buffer
+        ..writeln()
+        ..writeln()
+        ..writeln('--- Diagnostics ---')
+        ..writeln(buildDiagnosticsPreview());
+    }
+    final body = buffer.toString();
+    final subject = 'HappyVPN+ Feedback (v$appVersion)';
+
+    var opened = false;
+    try {
+      opened = await _supportChannel.invokeMethod<bool>('openMailto', {
+            'to': supportEmail,
+            'subject': subject,
+            'body': body,
+          }) ??
+          false;
+    } on MissingPluginException {
+      opened = false;
+    } on PlatformException {
+      opened = false;
+    }
+
+    if (!opened) {
+      await Clipboard.setData(
+        ClipboardData(text: 'To: $supportEmail\nSubject: $subject\n\n$body'),
+      );
+    }
+
     _preferences = await preferencesRepository.update(
       _preferences.copyWith(queuedFeedbackCount: 0),
     );
     notifyListeners();
+    return opened;
   }
 
   Future<void> deleteQueuedFeedback() async {
@@ -285,15 +323,21 @@ class AppViewModel extends ChangeNotifier {
 
   String buildDiagnosticsPreview() {
     final server = activeResolvedServer;
+    final routingLine = defaultTargetPlatform == TargetPlatform.iOS
+        ? 'All device traffic'
+        : (_preferences.proxyAllApps
+            ? 'Proxy all apps'
+            : '${_preferences.proxiedAppIds.length} selected apps');
     return '''
 App: HappyVPN+ (Хэппи ВПН) $appVersion
 Status: ${_connectionStatus.label}
 Selected server: ${selectedServer.displayName} (${server.id})
 Protocol: ${server.protocol}
-Routing: ${_preferences.proxyAllApps ? 'Proxy all apps' : '${_preferences.proxiedAppIds.length} selected apps'}
+Routing: $routingLine
 Latency: ${_sessionStats.latencyMs > 0 ? '${_sessionStats.latencyMs} ms' : '${server.latencyMs} ms'}
 Platform: ${defaultTargetPlatform.name}
-'''.trim();
+'''
+        .trim();
   }
 
   @override

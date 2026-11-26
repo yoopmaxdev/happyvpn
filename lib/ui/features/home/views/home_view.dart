@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
@@ -118,7 +119,9 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
               ),
               const SizedBox(height: 12),
               Text(
-                'Android needs your approval to create the VPN tunnel. Allow notifications to see your VPN status and disconnect from the notification.',
+                defaultTargetPlatform == TargetPlatform.iOS
+                    ? 'iOS needs your approval to add a VPN configuration. You can also allow notifications to see your VPN status.'
+                    : 'Android needs your approval to create the VPN tunnel. Allow notifications to see your VPN status and disconnect from the notification.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                   height: 1.4,
@@ -551,8 +554,9 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            vm.preferences.proxyAllApps
-                                ? 'Some traffic stays direct: RU sites/IPs and recognized torrents bypass the VPN.'
+                            defaultTargetPlatform == TargetPlatform.iOS ||
+                                    vm.preferences.proxyAllApps
+                                ? 'Some traffic stays direct: local network and recognized direct-routing rules bypass the VPN.'
                                 : 'App routing active: ${vm.preferences.proxiedAppIds.length} selected apps use the VPN.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colors.onSurfaceVariant,

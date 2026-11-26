@@ -34,13 +34,19 @@ class _FeedbackViewState extends State<FeedbackView> {
 
     setState(() => _isSending = true);
     try {
-      await widget.viewModel.submitFeedback(
+      final openedMail = await widget.viewModel.submitFeedback(
         message: text,
         includeDiagnostics: _includeDiagnostics,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Feedback received. Thank you.')),
+          SnackBar(
+            content: Text(
+              openedMail
+                  ? 'Opening email app to send feedback.'
+                  : 'No email app found. Feedback copied — email ${AppViewModel.supportEmail}.',
+            ),
+          ),
         );
         Navigator.of(context).pop();
       }
@@ -61,7 +67,7 @@ class _FeedbackViewState extends State<FeedbackView> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           Text(
-            'Your feedback goes to our support team using encrypted transport and storage. Do not include passwords or personal information.',
+            'Opens your email app addressed to ${AppViewModel.supportEmail}. Do not include passwords or sensitive personal information.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: colors.onSurfaceVariant,
               height: 1.4,

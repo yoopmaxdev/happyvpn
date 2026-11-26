@@ -101,11 +101,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('App routing'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('Version 1.0.11'),
+      find.text('Version 2.0.0'),
       300,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text('Version 1.0.11'), findsOneWidget);
+    expect(find.text('Version 2.0.0'), findsOneWidget);
   });
 
   test('YandexAdConfig and ReviewService store configured IDs', () {
@@ -118,4 +118,42 @@ void main() {
     expect(YandexAdConfig.feedAdUnitId, 'R-M-20506101-6');
     expect(ReviewService.iosAppStoreId, '6839425968');
   });
+
+  testWidgets(
+    'iOS hides Android App routing and uses iOS VPN copy',
+    (WidgetTester tester) async {
+      final vm = await createViewModel();
+      addTearDown(vm.dispose);
+
+      await tester.pumpWidget(SuperVpnApp(viewModel: vm));
+      await tester.pump();
+
+      await tester.tap(find.text('Agree and continue'));
+      await tester.pumpAndSettle();
+
+      // Permissions sheet uses iOS wording (not Android)
+      await tester.tap(find.text('Connect'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('iOS needs your approval'), findsOneWidget);
+      expect(find.textContaining('Android'), findsNothing);
+
+      await tester.tap(find.text('Continue without notifications'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Settings hides Android-only App routing on iOS
+      await tester.tap(find.text('Settings'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('App routing'), findsNothing);
+      expect(
+        vm.buildDiagnosticsPreview(),
+        contains('Routing: All device traffic'),
+      );
+
+      await vm.disconnect();
+      await tester.pump();
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
 }
